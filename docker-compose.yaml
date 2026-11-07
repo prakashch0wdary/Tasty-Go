@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: foodie-mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mongo-user
+      MONGO_INITDB_ROOT_PASSWORD: mongo-pass
+    volumes:
+      - mongo-data:/data/db
+    ports:
+      - "27017:27017"
+
+  backend:
+    build: ./backend
+    container_name: foodie-backend
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    environment:
+      PORT: 5000
+      MONGO_URI: mongodb://mongo-user:mongo-pass@mongo:27017/foodie?authSource=admin
+      JWT_SECRET: supersecretjwtkey
+    ports:
+      - "5000:5000"
+    networks:
+      default:
+        aliases:
+          - backend-service   # so nginx.conf (written for k8s Service DNS) also works here
+
+  frontend:
+    build: ./frontend
+    container_name: foodie-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8843:80"
+
+volumes:
+  mongo-data:
